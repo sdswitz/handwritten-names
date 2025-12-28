@@ -26,6 +26,7 @@ wheels/
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb
+!colab_training.ipynb
 
 # PyTorch
 *.pth
