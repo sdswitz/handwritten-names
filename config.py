@@ -24,11 +24,22 @@ class Config:
     BLANK_LABEL = len(CHARS)  # CTC blank token
     NUM_CLASSES = len(CHARS) + 1  # +1 for blank
 
-    # Model architecture
-    CNN_OUTPUT_CHANNELS = 512
-    RNN_HIDDEN_SIZE = 256
-    RNN_NUM_LAYERS = 2
-    RNN_DROPOUT = 0.2
+    # Model selection
+    USE_TRANSFORMER = True  # Toggle between CRNN and Transformer
+
+    # CRNN Model architecture (commented out - not in use)
+    # CNN_OUTPUT_CHANNELS = 512
+    # RNN_HIDDEN_SIZE = 256
+    # RNN_NUM_LAYERS = 2
+    # RNN_DROPOUT = 0.2
+
+    # Transformer architecture settings
+    PATCH_SIZE = 64  # Size of each patch (64x64)
+    EMBED_DIM = 256  # Embedding dimension
+    TRANSFORMER_LAYERS = 6  # Number of encoder layers
+    TRANSFORMER_HEADS = 8   # Number of attention heads
+    TRANSFORMER_DIM_FF = 1024  # Feed-forward dimension
+    TRANSFORMER_DROPOUT = 0.1
 
     # Training hyperparameters
     BATCH_SIZE = 32

@@ -8,7 +8,8 @@ import pandas as pd
 
 from config import Config
 from data.dataset import HandwrittenNamesDataset, collate_fn
-from models.crnn import CRNN
+from models.crnn import CRNN  # CRNN model (fallback option)
+from models.transformer import TransformerOCR  # Using Transformer by default
 from utils.decoder import CTCDecoder
 from utils.metrics import character_error_rate, word_error_rate, accuracy, AverageMeter
 
@@ -190,16 +191,36 @@ def main():
 
     # Create model
     print('Creating model...')
-    model = CRNN(
-        img_height=Config.IMG_HEIGHT,
-        img_width=Config.IMG_WIDTH,
-        num_channels=Config.NUM_CHANNELS,
-        num_classes=Config.NUM_CLASSES,
-        cnn_output_channels=Config.CNN_OUTPUT_CHANNELS,
-        rnn_hidden_size=Config.RNN_HIDDEN_SIZE,
-        rnn_num_layers=Config.RNN_NUM_LAYERS,
-        rnn_dropout=Config.RNN_DROPOUT
-    )
+    if Config.USE_TRANSFORMER:
+        print('Using Transformer architecture')
+        model = TransformerOCR(
+            img_height=Config.IMG_HEIGHT,
+            img_width=Config.IMG_WIDTH,
+            patch_size=Config.PATCH_SIZE,
+            embed_dim=Config.EMBED_DIM,
+            num_layers=Config.TRANSFORMER_LAYERS,
+            num_heads=Config.TRANSFORMER_HEADS,
+            dim_ff=Config.TRANSFORMER_DIM_FF,
+            num_classes=Config.NUM_CLASSES,
+            dropout=Config.TRANSFORMER_DROPOUT
+        )
+    else:
+        print('Using CRNN architecture')
+        # Uncomment the following lines in config.py if you want to use CRNN:
+        # CNN_OUTPUT_CHANNELS = 512
+        # RNN_HIDDEN_SIZE = 256
+        # RNN_NUM_LAYERS = 2
+        # RNN_DROPOUT = 0.2
+        model = CRNN(
+            img_height=Config.IMG_HEIGHT,
+            img_width=Config.IMG_WIDTH,
+            num_channels=Config.NUM_CHANNELS,
+            num_classes=Config.NUM_CLASSES,
+            cnn_output_channels=512,  # Config.CNN_OUTPUT_CHANNELS
+            rnn_hidden_size=256,  # Config.RNN_HIDDEN_SIZE
+            rnn_num_layers=2,  # Config.RNN_NUM_LAYERS
+            rnn_dropout=0.2  # Config.RNN_DROPOUT
+        )
     model = model.to(device)
     print(f'Number of parameters: {sum(p.numel() for p in model.parameters()):,}')
 
