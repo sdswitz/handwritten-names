@@ -206,7 +206,7 @@ def main():
     # Loss and optimizer
     criterion = nn.CTCLoss(blank=Config.BLANK_LABEL, zero_infinity=True)
     optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=Config.WEIGHT_DECAY)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
 
     # Decoder
     decoder = CTCDecoder(Config.CHARS, Config.BLANK_LABEL)
