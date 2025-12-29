@@ -32,9 +32,18 @@ class CTCDecoder:
         """
         # Handle different input shapes
         if output.dim() == 3:
-            if output.size(1) < output.size(0):
-                # Likely (sequence_length, batch, num_classes)
-                output = output.permute(1, 0, 2)  # -> (batch, sequence_length, num_classes)
+            # Use output_lengths to reliably determine the correct format
+            if output_lengths is not None:
+                # Check if first dimension matches the sequence length
+                if output.size(0) == output_lengths[0]:
+                    # Format is (sequence_length, batch, num_classes)
+                    output = output.permute(1, 0, 2)  # -> (batch, sequence_length, num_classes)
+                # else: already in (batch, sequence_length, num_classes)
+            else:
+                # Fall back to size heuristic when output_lengths not provided
+                if output.size(1) < output.size(0):
+                    # Likely (sequence_length, batch, num_classes)
+                    output = output.permute(1, 0, 2)  # -> (batch, sequence_length, num_classes)
 
         batch_size = output.size(0)
         decoded_texts = []
