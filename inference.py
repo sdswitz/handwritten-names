@@ -23,7 +23,11 @@ def load_model(checkpoint_path, device):
         rnn_dropout=Config.RNN_DROPOUT
     )
 
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+    except Exception as e:
+        raise RuntimeError(f"Error loading checkpoint from {checkpoint_path}: {e}")
+    
     model.load_state_dict(checkpoint['model_state_dict'])
     model = model.to(device)
     model.eval()
