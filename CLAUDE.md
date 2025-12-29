@@ -201,6 +201,361 @@ Performance depends on:
 3. **Mobile deployment:** Convert to ONNX/TFLite for mobile apps
 4. **Multi-language support:** Extend beyond English names
 
+## Alternative Architecture: Transformer with Patch Embeddings
+
+### Overview
+
+A Vision Transformer (ViT) style approach for handwritten name recognition. Instead of CNN+RNN, this uses:
+- **Patch embeddings:** Split image into patches, embed each as a token
+- **Transformer encoder:** Self-attention to model relationships between patches
+- **Sequence decoder:** Predict character sequence autoregressively or with CTC
+
+### How It Differs from CRNN
+
+| Aspect | CRNN | Transformer |
+|--------|------|-------------|
+| Feature extraction | CNN (inductive bias for images) | Patch embeddings (learns from scratch) |
+| Sequence modeling | Bidirectional LSTM | Self-attention (parallel processing) |
+| Receptive field | Local (conv filters) | Global (attention over all patches) |
+| Training | Faster convergence | Needs more data/compute |
+| Inference | Sequential RNN processing | Fully parallel (faster) |
+
+### Architecture Breakdown
+
+```
+Input Image (128 x 512)
+    ↓
+Patchify (split into 8x8 patches)
+    ↓
+Patch Embeddings (2 x 64 = 128 patches, each 64-dim)
+    ↓
+Positional Encoding (add position info)
+    ↓
+Transformer Encoder (6-12 layers)
+    - Multi-head self-attention
+    - Feed-forward networks
+    - Layer normalization
+    ↓
+Sequence Prediction (two options):
+  A) CTC Loss (like CRNN)
+  B) Autoregressive decoder (like GPT)
+    ↓
+Output: Character sequence
+```
+
+### Patch Embeddings Explained
+
+**Concept:** Treat an image like a sequence of "visual words" (patches).
+
+For a 128x512 image with patch_size=64:
+- Number of patches: (128/64) × (512/64) = 2 × 8 = 16 patches
+- Each patch: 64×64 pixels = 4,096 values
+- Linear projection: 4,096 → embed_dim (e.g., 256)
+- Result: 16 tokens, each 256-dim
+
+**Code example:**
+```python
+# Patchify the image
+patch_size = 64
+num_patches_h = 128 // patch_size  # 2
+num_patches_w = 512 // patch_size  # 8
+
+# Reshape: (B, 1, 128, 512) → (B, num_patches, patch_size²)
+x = x.reshape(B, 1, num_patches_h, patch_size, num_patches_w, patch_size)
+x = x.permute(0, 2, 4, 1, 3, 5)  # (B, 2, 8, 1, 64, 64)
+x = x.reshape(B, num_patches_h * num_patches_w, -1)  # (B, 16, 4096)
+
+# Linear embedding
+patch_embed = nn.Linear(patch_size * patch_size, embed_dim)
+x = patch_embed(x)  # (B, 16, 256)
+```
+
+### What Can Be Reused
+
+From your current implementation:
+
+✅ **Keep as-is:**
+- `data/dataset.py` - Dataset and text encoding
+- `utils/transforms.py` - ResizePad transform
+- `utils/decoder.py` - CTC decoder (if using CTC loss)
+- `utils/metrics.py` - Evaluation metrics
+- `train.py` - Training loop structure (modify model instantiation)
+- `config.py` - Configuration (add transformer hyperparameters)
+
+🔄 **Modify:**
+- `models/crnn.py` → Create new `models/transformer.py`
+- Update Config with transformer-specific params
+
+### Getting Started: Step-by-Step
+
+#### Step 1: Add Transformer Config
+
+Edit `config.py`:
+```python
+# Add after CRNN settings:
+
+# Transformer architecture (alternative to CRNN)
+USE_TRANSFORMER = False  # Toggle between CRNN and Transformer
+
+# Patch embedding settings
+PATCH_SIZE = 64  # Size of each patch (64x64)
+EMBED_DIM = 256  # Embedding dimension
+
+# Transformer settings
+TRANSFORMER_LAYERS = 6  # Number of encoder layers
+TRANSFORMER_HEADS = 8   # Number of attention heads
+TRANSFORMER_DIM_FF = 1024  # Feed-forward dimension
+TRANSFORMER_DROPOUT = 0.1
+```
+
+#### Step 2: Create Transformer Model
+
+Create `models/transformer.py`:
+```python
+import torch
+import torch.nn as nn
+import math
+
+class PatchEmbedding(nn.Module):
+    """Convert image to patch embeddings."""
+    def __init__(self, img_height, img_width, patch_size, embed_dim):
+        super().__init__()
+        self.patch_size = patch_size
+        self.num_patches_h = img_height // patch_size
+        self.num_patches_w = img_width // patch_size
+        self.num_patches = self.num_patches_h * self.num_patches_w
+
+        # Linear projection of flattened patches
+        self.projection = nn.Linear(patch_size * patch_size, embed_dim)
+
+    def forward(self, x):
+        # x: (B, 1, H, W)
+        B = x.shape[0]
+
+        # Patchify: (B, 1, H, W) -> (B, num_patches, patch_size²)
+        x = x.reshape(
+            B, 1,
+            self.num_patches_h, self.patch_size,
+            self.num_patches_w, self.patch_size
+        )
+        x = x.permute(0, 2, 4, 1, 3, 5)  # (B, nH, nW, 1, pH, pW)
+        x = x.reshape(B, self.num_patches, -1)  # (B, num_patches, patch_size²)
+
+        # Linear projection
+        x = self.projection(x)  # (B, num_patches, embed_dim)
+
+        return x
+
+
+class PositionalEncoding(nn.Module):
+    """Add positional information to patches."""
+    def __init__(self, num_patches, embed_dim, dropout=0.1):
+        super().__init__()
+        self.dropout = nn.Dropout(dropout)
+
+        # Create positional encoding
+        pe = torch.zeros(1, num_patches, embed_dim)
+        position = torch.arange(0, num_patches).unsqueeze(1).float()
+        div_term = torch.exp(
+            torch.arange(0, embed_dim, 2).float() *
+            -(math.log(10000.0) / embed_dim)
+        )
+
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
+
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe
+        return self.dropout(x)
+
+
+class TransformerOCR(nn.Module):
+    """Transformer model for handwritten name recognition."""
+    def __init__(self, img_height=128, img_width=512, patch_size=64,
+                 embed_dim=256, num_layers=6, num_heads=8, dim_ff=1024,
+                 num_classes=38, dropout=0.1):
+        super().__init__()
+
+        # Patch embedding
+        self.patch_embed = PatchEmbedding(
+            img_height, img_width, patch_size, embed_dim
+        )
+        num_patches = self.patch_embed.num_patches
+
+        # Positional encoding
+        self.pos_encoding = PositionalEncoding(num_patches, embed_dim, dropout)
+
+        # Transformer encoder
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embed_dim,
+            nhead=num_heads,
+            dim_feedforward=dim_ff,
+            dropout=dropout,
+            batch_first=True
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers)
+
+        # Output projection for CTC
+        self.output_proj = nn.Linear(embed_dim, num_classes)
+
+    def forward(self, x):
+        # x: (B, 1, H, W)
+
+        # Patch embedding
+        x = self.patch_embed(x)  # (B, num_patches, embed_dim)
+
+        # Add positional encoding
+        x = self.pos_encoding(x)
+
+        # Transformer encoding
+        x = self.transformer(x)  # (B, num_patches, embed_dim)
+
+        # Project to character probabilities
+        output = self.output_proj(x)  # (B, num_patches, num_classes)
+
+        # Permute for CTC loss: (num_patches, B, num_classes)
+        output = output.permute(1, 0, 2)
+
+        # Log softmax
+        output = torch.nn.functional.log_softmax(output, dim=2)
+
+        # Output lengths
+        batch_size = x.size(0)
+        output_lengths = torch.full(
+            (batch_size,),
+            fill_value=output.size(0),
+            dtype=torch.long
+        )
+
+        return output, output_lengths
+
+
+if __name__ == '__main__':
+    # Test the model
+    model = TransformerOCR(
+        img_height=128,
+        img_width=512,
+        patch_size=64,
+        embed_dim=256,
+        num_layers=6,
+        num_heads=8,
+        dim_ff=1024,
+        num_classes=38
+    )
+
+    x = torch.randn(4, 1, 128, 512)
+    output, output_lengths = model(x)
+
+    print(f"Input shape: {x.shape}")
+    print(f"Output shape: {output.shape}")
+    print(f"Output lengths: {output_lengths}")
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters()):,}")
+```
+
+#### Step 3: Modify Training Script
+
+In `train.py`, add model selection:
+```python
+from models.crnn import CRNN
+from models.transformer import TransformerOCR
+
+# In main():
+if Config.USE_TRANSFORMER:
+    print('Creating Transformer model...')
+    model = TransformerOCR(
+        img_height=Config.IMG_HEIGHT,
+        img_width=Config.IMG_WIDTH,
+        patch_size=Config.PATCH_SIZE,
+        embed_dim=Config.EMBED_DIM,
+        num_layers=Config.TRANSFORMER_LAYERS,
+        num_heads=Config.TRANSFORMER_HEADS,
+        dim_ff=Config.TRANSFORMER_DIM_FF,
+        num_classes=Config.NUM_CLASSES,
+        dropout=Config.TRANSFORMER_DROPOUT
+    )
+else:
+    print('Creating CRNN model...')
+    model = CRNN(...)  # existing code
+```
+
+#### Step 4: Update Inference
+
+Modify `inference.py` to load the appropriate model type:
+```python
+def load_model(checkpoint_path, device):
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+
+    # Check which model type
+    if Config.USE_TRANSFORMER:
+        model = TransformerOCR(...)
+    else:
+        model = CRNN(...)
+
+    model.load_state_dict(checkpoint['model_state_dict'])
+    # ... rest of code
+```
+
+#### Step 5: Train and Compare
+
+```bash
+# Train CRNN (baseline)
+# In config.py: USE_TRANSFORMER = False
+python train.py
+
+# Train Transformer
+# In config.py: USE_TRANSFORMER = True
+python train.py
+
+# Compare results
+python evaluate.py  # Check CER, WER, accuracy
+```
+
+### Expected Benefits
+
+✅ **Advantages:**
+1. **Global context:** Attention sees entire image at once
+2. **Parallelization:** Faster training than sequential RNN
+3. **State-of-the-art:** Transformers dominate many vision tasks
+4. **Flexibility:** Easy to add position-aware attention
+5. **Scalability:** Performance improves with more data/compute
+
+⚠️ **Challenges:**
+1. **Data hungry:** Needs more training data than CRNN
+2. **Compute intensive:** Larger model, more memory
+3. **Hyperparameter tuning:** More knobs to tune
+4. **Patch size:** Critical choice (too small = too many tokens, too large = loss of detail)
+
+### Optimization Tips
+
+1. **Smaller patches for better detail:** Try 32×32 or 16×16 patches
+2. **Pre-training:** Use ImageNet pretrained ViT and fine-tune
+3. **Hierarchical patches:** Different patch sizes for multi-scale features
+4. **Learnable positional embeddings:** Instead of fixed sinusoidal
+5. **Cross-attention decoder:** Instead of CTC, use transformer decoder
+
+### When to Use Transformer vs CRNN
+
+**Use CRNN if:**
+- Limited compute/data
+- Need fast prototyping
+- Simpler is better
+- Known to work well for OCR
+
+**Use Transformer if:**
+- Have large dataset (100k+ samples)
+- GPU resources available
+- Want state-of-the-art performance
+- Experimenting with architectures
+
+### Further Reading
+
+- **Vision Transformer (ViT) Paper:** "An Image is Worth 16x16 Words"
+- **TrOCR Paper:** "Transformer-based OCR with Pre-trained Models"
+- **Attention Is All You Need:** Original transformer paper
+- **PyTorch Vision Transformer:** timm library implementation
+
 ## GitHub Repository Structure
 
 - **Main branch:** Contains all production code
