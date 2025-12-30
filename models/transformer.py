@@ -28,56 +28,62 @@ import math
 
 
 class PatchEmbedding(nn.Module):
-    """Convert image to patch embeddings.
+    """Convert image to patch embeddings using convolutional projection.
 
-    Splits the input image into non-overlapping patches and projects each patch
-    into an embedding vector using a linear layer.
+    Uses a convolutional layer with kernel_size=patch_size and stride=patch_size
+    to efficiently extract and project patches. This is the standard approach used
+    in Vision Transformers (ViT, DeiT, Swin, etc.).
 
     Args:
         img_height (int): Height of input image
         img_width (int): Width of input image
         patch_size (int): Size of each square patch
+        in_chans (int): Number of input channels (default: 1 for grayscale)
         embed_dim (int): Dimension of patch embeddings
+        bias (bool): Whether to use bias in the projection layer
 
     Example:
-        For a 128x512 image with patch_size=64:
-        - Number of patches: (128/64) × (512/64) = 2 × 8 = 16 patches
-        - Each patch: 64×64 pixels = 4,096 values
-        - After projection: 16 tokens, each embed_dim-dimensional
+        For a 128x512 image with patch_size=16:
+        - Number of patches: (128/16) × (512/16) = 8 × 32 = 256 patches
+        - Each patch: 16×16 pixels processed by convolution
+        - After projection: 256 tokens, each embed_dim-dimensional
     """
 
-    def __init__(self, img_height, img_width, patch_size, embed_dim):
+    def __init__(self, img_height, img_width, patch_size, in_chans=1, embed_dim=256, bias=True):
         super().__init__()
+
+        assert img_height % patch_size == 0, f"Image height {img_height} must be divisible by patch_size {patch_size}"
+        assert img_width % patch_size == 0, f"Image width {img_width} must be divisible by patch_size {patch_size}"
+
+        self.img_height = img_height
+        self.img_width = img_width
         self.patch_size = patch_size
         self.num_patches_h = img_height // patch_size
         self.num_patches_w = img_width // patch_size
         self.num_patches = self.num_patches_h * self.num_patches_w
 
-        # Linear projection of flattened patches
-        self.projection = nn.Linear(patch_size * patch_size, embed_dim)
+        # Convolutional projection (standard ViT approach)
+        # Each "convolution" processes exactly one patch (kernel_size=patch_size, stride=patch_size)
+        self.proj = nn.Conv2d(
+            in_channels=in_chans,
+            out_channels=embed_dim,
+            kernel_size=patch_size,
+            stride=patch_size,
+            bias=bias
+        )
 
     def forward(self, x):
         """
         Args:
-            x (torch.Tensor): Input images of shape (B, 1, H, W)
+            x (torch.Tensor): Input images of shape (B, C, H, W)
 
         Returns:
             torch.Tensor: Patch embeddings of shape (B, num_patches, embed_dim)
         """
         # x: (B, 1, H, W)
-        B = x.shape[0]
-
-        # Patchify: (B, 1, H, W) -> (B, num_patches, patch_size²)
-        x = x.reshape(
-            B, 1,
-            self.num_patches_h, self.patch_size,
-            self.num_patches_w, self.patch_size
-        )
-        x = x.permute(0, 2, 4, 1, 3, 5)  # (B, nH, nW, 1, pH, pW)
-        x = x.reshape(B, self.num_patches, -1)  # (B, num_patches, patch_size²)
-
-        # Linear projection
-        x = self.projection(x)  # (B, num_patches, embed_dim)
+        x = self.proj(x)  # (B, embed_dim, H//patch_size, W//patch_size)
+        x = x.flatten(2)  # (B, embed_dim, num_patches)
+        x = x.transpose(1, 2)  # (B, num_patches, embed_dim)
 
         return x
 
@@ -153,12 +159,16 @@ class TransformerOCR(nn.Module):
 
     def __init__(self, img_height=128, img_width=512, patch_size=64,
                  embed_dim=256, num_layers=6, num_heads=8, dim_ff=1024,
-                 num_classes=38, dropout=0.1):
+                 num_classes=38, dropout=0.1, in_chans=1):
         super().__init__()
 
-        # Patch embedding
+        # Patch embedding (using convolutional projection)
         self.patch_embed = PatchEmbedding(
-            img_height, img_width, patch_size, embed_dim
+            img_height=img_height,
+            img_width=img_width,
+            patch_size=patch_size,
+            in_chans=in_chans,
+            embed_dim=embed_dim
         )
         num_patches = self.patch_embed.num_patches
 

@@ -34,7 +34,7 @@ class Config:
     # RNN_DROPOUT = 0.2
 
     # Transformer architecture settings
-    PATCH_SIZE = 64  # Size of each patch (64x64)
+    PATCH_SIZE = 16  # Size of each patch (16x16) - reduced from 64 for better resolution
     EMBED_DIM = 256  # Embedding dimension
     TRANSFORMER_LAYERS = 6  # Number of encoder layers
     TRANSFORMER_HEADS = 8   # Number of attention heads
