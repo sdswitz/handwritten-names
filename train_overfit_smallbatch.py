@@ -174,7 +174,20 @@ def main():
 
     # Create model
     print('Creating model...')
-    model = ViT()
+    model = ViT(
+        img_h=Config.IMG_HEIGHT,
+        img_w=Config.IMG_WIDTH,
+        patch_size=Config.PATCH_SIZE,
+        embed_dim=Config.EMBED_DIM,
+        num_classes=Config.NUM_CLASSES,
+        depth=Config.TRANSFORMER_LAYERS,
+        num_heads=Config.TRANSFORMER_HEADS,
+        mlp_ratio=4.0,
+        attn_p=Config.TRANSFORMER_DROPOUT,
+        mlp_p=Config.TRANSFORMER_DROPOUT,
+        proj_p=Config.TRANSFORMER_DROPOUT
+    )
+    
     model = model.to(device)
     print(f'Number of parameters: {sum(p.numel() for p in model.parameters()):,}')
     # import sys; sys.exit(0)
