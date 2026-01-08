@@ -182,7 +182,7 @@ def main():
         num_classes=Config.NUM_CLASSES,
         depth=Config.TRANSFORMER_LAYERS,
         num_heads=Config.TRANSFORMER_HEADS,
-        mlp_ratio=4.0,
+        mlp_ratio=2.0,
         attn_p=Config.TRANSFORMER_DROPOUT,
         mlp_p=Config.TRANSFORMER_DROPOUT,
         proj_p=Config.TRANSFORMER_DROPOUT
@@ -194,15 +194,15 @@ def main():
 
     # Loss and optimizer
     criterion = nn.CTCLoss(blank=Config.BLANK_LABEL, zero_infinity=True)
-    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=Config.WEIGHT_DECAY)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
+    optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE) #, weight_decay=Config.WEIGHT_DECAY)
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
 
     # Decoder
     decoder = CTCDecoder(Config.CHARS, Config.BLANK_LABEL)
 
     # Training loop
-    best_val_cer = float('inf')
-    patience_counter = 0
+    # best_val_cer = float('inf')
+    # patience_counter = 0
 
     history = {
         'train_loss': [], 'train_cer': [], 'train_wer': [], 'train_acc': [],
@@ -218,43 +218,43 @@ def main():
         )
 
         # Validate
-        val_loss, val_cer, val_wer, val_acc = validate(
-            model, train_loader, criterion, decoder, device
-        )
+        # val_loss, val_cer, val_wer, val_acc = validate(
+        #     model, train_loader, criterion, decoder, device
+        # )
 
         # Update learning rate
-        scheduler.step(val_loss)
+        # scheduler.step(val_loss)
 
         # Save history
         history['train_loss'].append(train_loss)
         history['train_cer'].append(train_cer)
         history['train_wer'].append(train_wer)
         history['train_acc'].append(train_acc)
-        history['val_loss'].append(val_loss)
-        history['val_cer'].append(val_cer)
-        history['val_wer'].append(val_wer)
-        history['val_acc'].append(val_acc)
+        # history['val_loss'].append(val_loss)
+        # history['val_cer'].append(val_cer)
+        # history['val_wer'].append(val_wer)
+        # history['val_acc'].append(val_acc)
 
         # Print epoch summary
         print(f'\nEpoch {epoch} Summary:')
         print(f'Train - Loss: {train_loss:.4f}, CER: {train_cer:.4f}, WER: {train_wer:.4f}, Acc: {train_acc:.4f}')
-        print(f'Val   - Loss: {val_loss:.4f}, CER: {val_cer:.4f}, WER: {val_wer:.4f}, Acc: {val_acc:.4f}')
+        # print(f'Val   - Loss: {val_loss:.4f}, CER: {val_cer:.4f}, WER: {val_wer:.4f}, Acc: {val_acc:.4f}')
 
-        # Save best model
-        if val_cer < best_val_cer:
-            best_val_cer = val_cer
-            patience_counter = 0
-            checkpoint_path = os.path.join(Config.CHECKPOINT_DIR, 'best_model.pth')
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'val_cer': val_cer,
-                'val_acc': val_acc,
-            }, checkpoint_path)
-            print(f'Saved best model with CER: {val_cer:.4f}')
-        else:
-            patience_counter += 1
+        # # Save best model
+        # if val_cer < best_val_cer:
+        #     best_val_cer = val_cer
+        #     patience_counter = 0
+        #     checkpoint_path = os.path.join(Config.CHECKPOINT_DIR, 'best_model.pth')
+        #     torch.save({
+        #         'epoch': epoch,
+        #         'model_state_dict': model.state_dict(),
+        #         'optimizer_state_dict': optimizer.state_dict(),
+        #         'val_cer': val_cer,
+        #         'val_acc': val_acc,
+        #     }, checkpoint_path)
+        #     print(f'Saved best model with CER: {val_cer:.4f}')
+        # else:
+        #     patience_counter += 1
 
         # Save checkpoint every N epochs
         if epoch % Config.SAVE_FREQ == 0:
@@ -263,20 +263,20 @@ def main():
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'val_cer': val_cer,
-                'val_acc': val_acc,
+                # 'val_cer': val_cer,
+                # 'val_acc': val_acc,
             }, checkpoint_path)
 
-        # Early stopping
-        if patience_counter >= Config.PATIENCE:
-            print(f'\nEarly stopping triggered after {epoch} epochs')
-            break
+        # # Early stopping
+        # if patience_counter >= Config.PATIENCE:
+        #     print(f'\nEarly stopping triggered after {epoch} epochs')
+        #     break
 
     # Save training history
     history_df = pd.DataFrame(history)
     history_df.to_csv(os.path.join(Config.CHECKPOINT_DIR, 'training_history.csv'), index=False)
     print('\nTraining complete!')
-    print(f'Best validation CER: {best_val_cer:.4f}')
+    # print(f'Best validation CER: {best_val_cer:.4f}')
 
 
 if __name__ == '__main__':

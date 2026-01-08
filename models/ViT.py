@@ -79,7 +79,6 @@ class SelfAttentionEncoder(nn.Module):
 
         if self.fused_attn:
           x = F.scaled_dot_product_attention(q,k,v, dropout_p=self.attn_p)
-            # x = torch.nn.functional.scaled_dot_product_attention(q, k, v, dropout_p=self.attn_p, is_causal=False)
         else:
             attn = (q @ k.transpose(-2,-1)) * self.scale
             attn = attn.softmax(dim=-1)
@@ -142,30 +141,21 @@ class ViT(nn.Module):
                  embed_dim=256,
                  depth=6,
                  num_heads=8,
-                 mlp_ratio=4.0,
-                 attn_p=0.1,
-                 mlp_p=0.1,
-                 proj_p=0.1,
-                 pos_p=0.1,
-                 head_p=0.1,
-                 pooling='cls',
+                 mlp_ratio=2.0,
+                 attn_p=0.0,
+                 mlp_p=0.0,
+                 proj_p=0.0,
+                 pos_p=0.0,
+                 head_p=0.0,
                  act_layer=nn.GELU,
                  norm_layer=nn.LayerNorm):
         super().__init__()
         
-        self.pooling = pooling
         self.patch_embed = PatchEmbed(img_h=img_h,
                                       img_w=img_w,
                                       patch_size=patch_size,
                                       in_chans=in_chans,
                                       embed_dim=embed_dim)
-        # self.cls_token = nn.Parameter(torch.zeros(1,1,embed_dim))
-        
-        # assert pooling in ['cls', 'mean'], "Pooling type must be either 'cls' or 'mean'"
-        # if pooling == 'cls':
-        #     num_tokens = self.patch_embed.num_patches + 1
-        # else:
-        #     num_tokens = self.patch_embed.num_patches
             
         self.pos_embed = nn.Parameter(torch.randn(1, self.patch_embed.num_patches, embed_dim))
         self.pos_drop = nn.Dropout(pos_p)
@@ -183,13 +173,6 @@ class ViT(nn.Module):
         self.norm = norm_layer(embed_dim)
         self.head_drop = nn.Dropout(head_p)
         self.head = nn.Linear(embed_dim, num_classes)
-        
-    # def _cls_pos_embed(self, x):
-    #     if self.pooling == 'cls':
-    #         x = torch.cat([self.cls_token.expand(x.shape[0], -1, -1), x], dim=1)
-    #     x = x + self.pos_embed
-    #     x = self.pos_drop(x)
-    #     return x
     
     # def _init_weights(self, module: nn.Module):
 
@@ -208,17 +191,11 @@ class ViT(nn.Module):
     
     def forward(self, x):
         x = self.patch_embed(x)
-        # x = self._cls_pos_embed(x)
         
         for block in self.blocks:
             x = block(x)
         
-        x = self.norm(x)
-        
-        # if self.pooling == 'cls':
-        #     x = x[:,0]
-        # else:
-        #     x = x.mean(dim=1)
+        # x = self.norm(x)
         
         # x = self.head_drop(x)
         # x = self.head(x)
