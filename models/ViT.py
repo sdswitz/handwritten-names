@@ -201,6 +201,7 @@ class ViT(nn.Module):
         # x = self.head(x)
         output = self.head(x)
         output = output.permute(1,0,2)
+        output = torch.nn.functional.log_softmax(output, dim=2)
         
         batch_size = x.size(0)
         output_lengths = torch.full(
