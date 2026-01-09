@@ -206,7 +206,7 @@ def main():
 
     history = {
         'train_loss': [], 'train_cer': [], 'train_wer': [], 'train_acc': [],
-        'val_loss': [], 'val_cer': [], 'val_wer': [], 'val_acc': []
+        #'val_loss': [], 'val_cer': [], 'val_wer': [], 'val_acc': []
     }
 
     for epoch in range(1, Config.NUM_EPOCHS + 1):
