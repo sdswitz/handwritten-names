@@ -55,6 +55,12 @@ def train_epoch(model, dataloader, criterion, optimizer, decoder, device, epoch)
                 target_text = ''.join([Config.CHARS[idx] for idx in label_segment])
                 target_texts.append(target_text)
                 start_idx += length
+                
+            if batch_idx == 0:  # First batch only
+                print(f"\nSample predictions vs targets:")
+                for i in range(min(3, len(decoded_preds))):
+                    print(f"  Pred: '{decoded_preds[i]}'")
+                    print(f"  True: '{target_texts[i]}'")
 
             # Calculate metrics
             batch_cer = character_error_rate(decoded_preds, target_texts)

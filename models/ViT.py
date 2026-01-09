@@ -192,11 +192,12 @@ class ViT(nn.Module):
     def forward(self, x):
         x = self.patch_embed(x)
         x = x + self.pos_embed
+        x = self.pos_drop(x)
         
         for block in self.blocks:
             x = block(x)
         
-        # x = self.norm(x)
+        x = self.norm(x)
         
         # x = self.head_drop(x)
         # x = self.head(x)
