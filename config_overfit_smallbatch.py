@@ -28,23 +28,23 @@ class Config:
     USE_TRANSFORMER = True  # Toggle between CRNN and Transformer
 
     # CRNN Model architecture (commented out - not in use)
-    # CNN_OUTPUT_CHANNELS = 512
-    # RNN_HIDDEN_SIZE = 256
-    # RNN_NUM_LAYERS = 2
-    # RNN_DROPOUT = 0.2
+    CNN_OUTPUT_CHANNELS = 512
+    RNN_HIDDEN_SIZE = 256
+    RNN_NUM_LAYERS = 2
+    RNN_DROPOUT = 0.0
 
-    # Transformer architecture settings
-    PATCH_SIZE = 16  # Size of each patch (16x16) - reduced from 64 for better resolution
-    EMBED_DIM = 128
-    TRANSFORMER_LAYERS = 4
-    TRANSFORMER_HEADS = 4
-    TRANSFORMER_DIM_FF = 1024
-    TRANSFORMER_DROPOUT = 0.1
+    # # Transformer architecture settings
+    # PATCH_SIZE = 16  # Size of each patch (16x16) - reduced from 64 for better resolution
+    # EMBED_DIM = 128
+    # TRANSFORMER_LAYERS = 4
+    # TRANSFORMER_HEADS = 4
+    # TRANSFORMER_DIM_FF = 1024
+    # TRANSFORMER_DROPOUT = 0.1
 
     # Training hyperparameters
-    BATCH_SIZE = 32
-    NUM_EPOCHS = 20
-    LEARNING_RATE = 0.001
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 50
+    LEARNING_RATE = 3e-4
     WEIGHT_DECAY = 1e-5
 
     # Device

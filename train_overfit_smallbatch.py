@@ -199,20 +199,20 @@ def main():
         img_width=Config.IMG_WIDTH,
         num_channels=Config.NUM_CHANNELS,
         num_classes=Config.NUM_CLASSES,
-        cnn_output_channels=512,  # Config.CNN_OUTPUT_CHANNELS
-        rnn_hidden_size=256,  # Config.RNN_HIDDEN_SIZE
-        rnn_num_layers=2,  # Config.RNN_NUM_LAYERS
-        rnn_dropout=0.0  # Config.RNN_DROPOUT
+        cnn_output_channels=Config.CNN_OUTPUT_CHANNELS,  # Config.CNN_OUTPUT_CHANNELS
+        rnn_hidden_size=Config.RNN_HIDDEN_SIZE,  # Config.RNN_HIDDEN_SIZE
+        rnn_num_layers=Config.RNN_NUM_LAYERS,  # Config.RNN_NUM_LAYERS
+        rnn_dropout=Config.RNN_DROPOUT  # Config.RNN_DROPOUT
     )
     # model.apply(model._init_weights)
     model = model.to(device)
     print(f'Number of parameters: {sum(p.numel() for p in model.parameters()):,}')
-    # import sys; sys.exit(0)
+    print(f"\nBatch size: {Config.BATCH_SIZE}")
 
     # Loss and optimizer
     criterion = nn.CTCLoss(blank=Config.BLANK_LABEL, zero_infinity=True)
     optimizer = optim.Adam(model.parameters(), lr=Config.LEARNING_RATE) #, weight_decay=Config.WEIGHT_DECAY)
-    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
 
     # Decoder
     decoder = CTCDecoder(Config.CHARS, Config.BLANK_LABEL)
@@ -240,7 +240,7 @@ def main():
         # )
 
         # Update learning rate
-        # scheduler.step(val_loss)
+        scheduler.step(train_loss)
 
         # Save history
         history['train_loss'].append(train_loss)
