@@ -174,25 +174,24 @@ class ViT(nn.Module):
         self.head_drop = nn.Dropout(head_p)
         self.head = nn.Linear(embed_dim, num_classes)
     
-    # def _init_weights(self, module: nn.Module):
+    def _init_weights(self, module: nn.Module):
 
-    #     if isinstance(module, ViT):
-    #         module.cls_token.data = nn.init.trunc_normal_(module.cls_token.data, mean=0, std=0.02)
-    #         module.pos_embed.data = nn.init.trunc_normal_(module.pos_embed.data, mean=0, std=0.02)
+        if isinstance(module, ViT):
+            module.pos_embed.data = nn.init.trunc_normal_(module.pos_embed.data, mean=0, std=0.02)
 
-    #     elif isinstance(module, (nn.Linear, nn.Conv2d)):
-    #         module.weight.data = nn.init.trunc_normal_(module.weight.data, mean=0, std=0.02)
-    #         if module.bias is not None:
-    #             module.bias.data.zero_()
+        elif isinstance(module, (nn.Linear, nn.Conv2d)):
+            module.weight.data = nn.init.trunc_normal_(module.weight.data, mean=0, std=0.02)
+            if module.bias is not None:
+                module.bias.data.zero_()
 
-    #     elif isinstance(module, nn.LayerNorm):
-    #         module.bias.data.zero_()
-    #         module.weight.data.fill_(1.0)
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
     
     def forward(self, x):
         x = self.patch_embed(x)
         x = x + self.pos_embed
-        x = self.pos_drop(x)
+        # x = self.pos_drop(x)
         
         for block in self.blocks:
             x = block(x)

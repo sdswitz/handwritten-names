@@ -35,24 +35,24 @@ class Config:
 
     # Transformer architecture settings
     PATCH_SIZE = 16  # Size of each patch (16x16) - reduced from 64 for better resolution
-    EMBED_DIM = 256  # Embedding dimension
-    TRANSFORMER_LAYERS = 6  # Number of encoder layers
-    TRANSFORMER_HEADS = 8   # Number of attention heads
-    TRANSFORMER_DIM_FF = 1024  # Feed-forward dimension
+    EMBED_DIM = 128
+    TRANSFORMER_LAYERS = 4
+    TRANSFORMER_HEADS = 4
+    TRANSFORMER_DIM_FF = 1024
     TRANSFORMER_DROPOUT = 0.1
 
     # Training hyperparameters
     BATCH_SIZE = 32
-    NUM_EPOCHS = 10
+    NUM_EPOCHS = 20
     LEARNING_RATE = 0.001
     WEIGHT_DECAY = 1e-5
 
     # Device
-    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # DataLoader
-    NUM_WORKERS = 4
-    PIN_MEMORY = True
+    NUM_WORKERS = 1
+    PIN_MEMORY = False
 
     # Early stopping
     PATIENCE = 5

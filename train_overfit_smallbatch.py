@@ -8,7 +8,8 @@ import pandas as pd
 
 from config_overfit_smallbatch import Config
 from data.dataset import HandwrittenNamesDataset, collate_fn
-from models.ViT import ViT
+# from models.ViT import ViT
+from models.crnn import CRNN
 from utils.decoder import CTCDecoder
 from utils.metrics import character_error_rate, word_error_rate, accuracy, AverageMeter
 
@@ -180,20 +181,30 @@ def main():
 
     # Create model
     print('Creating model...')
-    model = ViT(
-        img_h=Config.IMG_HEIGHT,
-        img_w=Config.IMG_WIDTH,
-        patch_size=Config.PATCH_SIZE,
-        embed_dim=Config.EMBED_DIM,
+    # model = ViT(
+    #     img_h=Config.IMG_HEIGHT,
+    #     img_w=Config.IMG_WIDTH,
+    #     patch_size=Config.PATCH_SIZE,
+    #     embed_dim=Config.EMBED_DIM,
+    #     num_classes=Config.NUM_CLASSES,
+    #     depth=Config.TRANSFORMER_LAYERS,
+    #     num_heads=Config.TRANSFORMER_HEADS,
+    #     mlp_ratio=2.0,
+    #     attn_p=Config.TRANSFORMER_DROPOUT,
+    #     mlp_p=Config.TRANSFORMER_DROPOUT,
+    #     proj_p=Config.TRANSFORMER_DROPOUT
+    # )
+    model = CRNN(
+        img_height=Config.IMG_HEIGHT,
+        img_width=Config.IMG_WIDTH,
+        num_channels=Config.NUM_CHANNELS,
         num_classes=Config.NUM_CLASSES,
-        depth=Config.TRANSFORMER_LAYERS,
-        num_heads=Config.TRANSFORMER_HEADS,
-        mlp_ratio=2.0,
-        attn_p=Config.TRANSFORMER_DROPOUT,
-        mlp_p=Config.TRANSFORMER_DROPOUT,
-        proj_p=Config.TRANSFORMER_DROPOUT
+        cnn_output_channels=512,  # Config.CNN_OUTPUT_CHANNELS
+        rnn_hidden_size=256,  # Config.RNN_HIDDEN_SIZE
+        rnn_num_layers=2,  # Config.RNN_NUM_LAYERS
+        rnn_dropout=0.0  # Config.RNN_DROPOUT
     )
-    
+    # model.apply(model._init_weights)
     model = model.to(device)
     print(f'Number of parameters: {sum(p.numel() for p in model.parameters()):,}')
     # import sys; sys.exit(0)
