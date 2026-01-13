@@ -216,10 +216,10 @@ def main():
             img_width=Config.IMG_WIDTH,
             num_channels=Config.NUM_CHANNELS,
             num_classes=Config.NUM_CLASSES,
-            cnn_output_channels=512,  # Config.CNN_OUTPUT_CHANNELS
-            rnn_hidden_size=256,  # Config.RNN_HIDDEN_SIZE
-            rnn_num_layers=2,  # Config.RNN_NUM_LAYERS
-            rnn_dropout=0.2  # Config.RNN_DROPOUT
+            cnn_output_channels=Config.CNN_OUTPUT_CHANNELS,
+            rnn_hidden_size=Config.RNN_HIDDEN_SIZE,
+            rnn_num_layers=Config.RNN_NUM_LAYERS,
+            rnn_dropout=Config.RNN_DROPOUT
         )
     model = model.to(device)
     print(f'Number of parameters: {sum(p.numel() for p in model.parameters()):,}')
