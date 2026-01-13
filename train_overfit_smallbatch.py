@@ -204,7 +204,7 @@ def main():
     #     rnn_num_layers=Config.RNN_NUM_LAYERS,  # Config.RNN_NUM_LAYERS
     #     rnn_dropout=Config.RNN_DROPOUT  # Config.RNN_DROPOUT
     # )
-    # model.apply(model._init_weights)
+    model.apply(model._init_weights)
     model = model.to(device)
     print(f'Number of parameters: {sum(p.numel() for p in model.parameters()):,}')
     print(f"\nBatch size: {Config.BATCH_SIZE}")
