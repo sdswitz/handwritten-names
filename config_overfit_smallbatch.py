@@ -34,12 +34,12 @@ class Config:
     RNN_DROPOUT = 0.0
 
     # # Transformer architecture settings
-    # PATCH_SIZE = 16  # Size of each patch (16x16) - reduced from 64 for better resolution
-    # EMBED_DIM = 128
-    # TRANSFORMER_LAYERS = 4
-    # TRANSFORMER_HEADS = 4
-    # TRANSFORMER_DIM_FF = 1024
-    # TRANSFORMER_DROPOUT = 0.1
+    PATCH_SIZE = 16  # Size of each patch (16x16) - reduced from 64 for better resolution
+    EMBED_DIM = 128
+    TRANSFORMER_LAYERS = 4
+    TRANSFORMER_HEADS = 4
+    TRANSFORMER_DIM_FF = 1024
+    TRANSFORMER_DROPOUT = 0.1
 
     # Training hyperparameters
     BATCH_SIZE = 64

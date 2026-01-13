@@ -28,10 +28,10 @@ class Config:
     USE_TRANSFORMER = True  # Toggle between CRNN and Transformer
 
     # CRNN Model architecture (commented out - not in use)
-    # CNN_OUTPUT_CHANNELS = 512
-    # RNN_HIDDEN_SIZE = 256
-    # RNN_NUM_LAYERS = 2
-    # RNN_DROPOUT = 0.2
+    CNN_OUTPUT_CHANNELS = 512
+    RNN_HIDDEN_SIZE = 256
+    RNN_NUM_LAYERS = 2
+    RNN_DROPOUT = 0.2
 
     # Transformer architecture settings
     PATCH_SIZE = 16  # Size of each patch (16x16) - reduced from 64 for better resolution
