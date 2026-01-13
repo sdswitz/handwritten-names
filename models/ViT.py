@@ -191,16 +191,16 @@ class ViT(nn.Module):
     def forward(self, x):
         x = self.patch_embed(x)
         x = x + self.pos_embed
-        # x = self.pos_drop(x)
+        x = self.pos_drop(x)
         
         for block in self.blocks:
             x = block(x)
         
         x = self.norm(x)
         
-        # x = self.head_drop(x)
-        # x = self.head(x)
-        output = self.head(x)
+        x = self.head_drop(x)
+        x = self.head(x)
+        output = x
         output = output.permute(1,0,2)
         output = torch.nn.functional.log_softmax(output, dim=2)
         
